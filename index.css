@@ -1,0 +1,15 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+/* 👇 ЖЕСТКО РАЗРЕШАЕМ СКРОЛЛ */
+html, body {
+  height: 100%;
+  overflow-y: auto !important; /* Важно! */
+  background-color: #0f172a;
+  overscroll-behavior-y: none; /* Убирает "пружину" на айфонах */
+}
+
+#root {
+  min-height: 100%;
+}
