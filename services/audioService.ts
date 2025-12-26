@@ -2,33 +2,57 @@ class AudioService {
   private rainAudio: HTMLAudioElement | null = null;
   private inhaleAudio: HTMLAudioElement | null = null;
   private exhaleAudio: HTMLAudioElement | null = null;
-  private gongAudio: HTMLAudioElement | null = null; // 1. Новая переменная
+  private gongAudio: HTMLAudioElement | null = null;
   private isMuted: boolean = false;
 
   constructor() {
-    this.rainAudio = new Audio('./sounds/rain.mp3');
-    this.rainAudio.loop = true; 
-    this.rainAudio.volume = 0.5;
+    // Убрали точку в начале, так надежнее для Vercel
+    const basePath = 'sounds/'; 
 
-    this.inhaleAudio = new Audio('./sounds/inhale.mp3');
+    this.rainAudio = new Audio(`${basePath}rain.mp3`);
+    this.rainAudio.loop = true; 
+    this.rainAudio.volume = 1.0; 
+
+    this.inhaleAudio = new Audio(`${basePath}inhale.mp3`);
     this.inhaleAudio.volume = 1.0;
 
-    this.exhaleAudio = new Audio('./sounds/exhale.mp3');
+    // ВАЖНО: preload="auto" подсказывает браузеру грузить сразу
+    this.exhaleAudio = new Audio(`${basePath}exhale.mp3`);
+    this.exhaleAudio.preload = 'auto'; 
     this.exhaleAudio.volume = 1.0;
     
-    // 2. Загружаем гонг
-    this.gongAudio = new Audio('./sounds/gong.mp3');
-    this.gongAudio.volume = 0.6; // Не слишком громко
+    this.gongAudio = new Audio(`${basePath}gong.mp3`);
+    this.gongAudio.volume = 0.6;
   }
 
+  // 👇 ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ
+  // Мы "прогреваем" все звуки при первом клике
   unlock() {
-    const empty = new Audio();
-    empty.play().catch(() => {});
+    const sounds = [this.inhaleAudio, this.exhaleAudio, this.gongAudio, this.rainAudio];
+
+    sounds.forEach(sound => {
+      if (sound) {
+        // 1. Делаем звук беззвучным
+        const originalVolume = sound.volume;
+        sound.volume = 0;
+        
+        // 2. Запускаем воспроизведение
+        sound.play().then(() => {
+            // 3. Сразу ставим на паузу и возвращаем в начало
+            sound.pause();
+            sound.currentTime = 0;
+            // 4. Возвращаем громкость
+            sound.volume = originalVolume;
+        }).catch((e) => {
+            console.log('Warmup failed for a sound', e);
+        });
+      }
+    });
   }
 
   playRain() {
     if (this.rainAudio && !this.isMuted) {
-      this.rainAudio.play().catch(e => console.warn("Audio play failed", e));
+      this.rainAudio.play().catch(e => console.error('Rain error:', e));
     }
   }
 
@@ -42,22 +66,21 @@ class AudioService {
   playInhale() {
     if (this.inhaleAudio && !this.isMuted) {
       this.inhaleAudio.currentTime = 0; 
-      this.inhaleAudio.play().catch(() => {});
+      this.inhaleAudio.play().catch(e => console.error('Inhale error:', e));
     }
   }
 
   playExhale() {
     if (this.exhaleAudio && !this.isMuted) {
       this.exhaleAudio.currentTime = 0;
-      this.exhaleAudio.play().catch(() => {});
+      this.exhaleAudio.play().catch(e => console.error('Exhale error:', e));
     }
   }
 
-  // 3. Метод воспроизведения гонга
   playGong() {
     if (this.gongAudio && !this.isMuted) {
-      this.gongAudio.currentTime = 0; // Сброс, чтобы можно было бить часто
-      this.gongAudio.play().catch(() => {});
+      this.gongAudio.currentTime = 0; 
+      this.gongAudio.play().catch(e => console.error('Gong error:', e));
     }
   }
 }
