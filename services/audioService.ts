@@ -6,7 +6,6 @@ class AudioService {
   private isMuted: boolean = false;
 
   constructor() {
-    // Убрали точку в начале, так надежнее для Vercel
     const basePath = 'sounds/'; 
 
     this.rainAudio = new Audio(`${basePath}rain.mp3`);
@@ -16,7 +15,7 @@ class AudioService {
     this.inhaleAudio = new Audio(`${basePath}inhale.mp3`);
     this.inhaleAudio.volume = 1.0;
 
-    // ВАЖНО: preload="auto" подсказывает браузеру грузить сразу
+    // preload="auto" нужен для отложенных звуков
     this.exhaleAudio = new Audio(`${basePath}exhale.mp3`);
     this.exhaleAudio.preload = 'auto'; 
     this.exhaleAudio.volume = 1.0;
@@ -25,26 +24,24 @@ class AudioService {
     this.gongAudio.volume = 0.6;
   }
 
-  // 👇 ГЛАВНОЕ ИЗМЕНЕНИЕ ЗДЕСЬ
-  // Мы "прогреваем" все звуки при первом клике
+  // 👇 ИСПРАВЛЕНИЕ ЗДЕСЬ
   unlock() {
-    const sounds = [this.inhaleAudio, this.exhaleAudio, this.gongAudio, this.rainAudio];
+    // Мы убрали inhaleAudio и rainAudio из этого списка.
+    // Они стартуют мгновенно при клике, им не нужен "фейковый" запуск.
+    // Если мы их тут тронем, мы собьем их настоящий старт.
+    const sounds = [this.exhaleAudio, this.gongAudio];
 
     sounds.forEach(sound => {
       if (sound) {
-        // 1. Делаем звук беззвучным
         const originalVolume = sound.volume;
         sound.volume = 0;
         
-        // 2. Запускаем воспроизведение
         sound.play().then(() => {
-            // 3. Сразу ставим на паузу и возвращаем в начало
             sound.pause();
             sound.currentTime = 0;
-            // 4. Возвращаем громкость
             sound.volume = originalVolume;
         }).catch((e) => {
-            console.log('Warmup failed for a sound', e);
+            console.log('Warmup failed', e);
         });
       }
     });
@@ -52,6 +49,7 @@ class AudioService {
 
   playRain() {
     if (this.rainAudio && !this.isMuted) {
+      // Android любит, когда play вызывается явно
       this.rainAudio.play().catch(e => console.error('Rain error:', e));
     }
   }
